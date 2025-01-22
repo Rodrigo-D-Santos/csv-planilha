@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformar CSV em Planilha</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <h1>Transformar CSV em Planilha</h1>
+    <p>Faça upload do seu arquivo CSV:</p>
+    <input type="file" id="upload" accept=".csv">
+    <button id="processar">Processar e Baixar Planilha</button>
+
+    <script>
+        document.getElementById('processar').addEventListener('click', () => {
+            const fileInput = document.getElementById('upload');
+            if (!fileInput.files.length) {
+                alert('Por favor, selecione um arquivo CSV.');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const csvData = event.target.result;
+                const rows = csvData.split('\n').map(row => row.split(','));
+
+                // Identificar índices das colunas importantes
+                const headers = rows[0].map(header => header.trim().replace(/"/g, ''));
+                const detalhesIndex = headers.indexOf("Detalhes");
+                const valorIndex = headers.indexOf("Valor");
+
+                if (detalhesIndex === -1 || valorIndex === -1) {
+                    alert("Erro: As colunas 'Detalhes' ou 'Valor' não foram encontradas no CSV.");
+                    return;
+                }
+
+                // Processar os dados
+                const data = rows.slice(1).map(row => {
+                    const detalhes = row[detalhesIndex]?.replace(/"/g, '').trim() || '';
+                    const valor = row[valorIndex]?.replace(/"/g, '').trim() || '';
+                    const match = detalhes.match(/(\d{2}\/\d{2}) (\d{2}:\d{2}) (.+)/);
+
+                    if (match) {
+                        const [_, data, hora, descricao] = match;
+                        return { Data: data, Hora: hora, Descrição: descricao, Valor: valor };
+                    }
+
+                    return { Data: '', Hora: '', Descrição: detalhes, Valor: valor };
+                });
+
+                // Filtrar linhas válidas
+                const validData = data.filter(row => row.Data || row.Hora || row.Descrição);
+
+                // Gerar planilha Excel
+                const worksheet = XLSX.utils.json_to_sheet(validData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Extrato");
+
+                // Baixar planilha
+                XLSX.writeFile(workbook, "extrato_processado.xlsx");
+            };
+
+            reader.readAsText(file, 'ISO-8859-1'); // Encoding para suportar caracteres especiais
+        });
+    </script>
+</body>
+
+</html>
