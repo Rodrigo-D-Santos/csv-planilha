@@ -61,8 +61,11 @@
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Extrato");
 
-                // Baixar planilha
-                XLSX.writeFile(workbook, "extrato_processado.xlsx");
+                // Usar o nome original do arquivo CSV, trocando a extensão para .xlsx
+                const originalName = file.name.replace(/\.csv$/i, ".xlsx");
+
+                // Baixar planilha com o mesmo nome
+                XLSX.writeFile(workbook, originalName);
             };
 
             reader.readAsText(file, 'ISO-8859-1'); // Encoding para suportar caracteres especiais
